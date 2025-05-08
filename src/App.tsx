@@ -1,23 +1,31 @@
-import React, { useState, useEffect } from "react";
 import "./App.css";
+import React from "react";
+import { UserProvider } from "./contexts/UserContext";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+import Login from "./components/Login";
+import Register from "./components/Register";
 import PredictionsList from "./components/Predictions";
+import ProtectedLayout from "./components/ProtectedLayout";
 
-function App() {
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRefreshKey((prevKey) => prevKey + 1);
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, []);
-
+const App: React.FC = () => {
   return (
-    <div className="App">
-      <PredictionsList key={refreshKey} />
-    </div>
+    <UserProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Protected Routes */}
+          <Route element={<ProtectedLayout />}>
+            <Route path="/" element={<PredictionsList />} />
+            <Route path="/predictions" element={<PredictionsList />} />
+            <Route path="/profile" element={<div>Profile</div>} />
+          </Route>
+        </Routes>
+      </Router>
+    </UserProvider>
   );
-}
+};
 
 export default App;

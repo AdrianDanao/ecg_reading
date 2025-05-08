@@ -6,7 +6,6 @@ const router = Router();
 router.get("/", async (req, res) => {
     const predictions = await Predictions.findOne().sort({ timestamp: -1 });
     res.json(predictions);
-    console.log(predictions);
 });
 
 router.post("/", async (req, res) => {
