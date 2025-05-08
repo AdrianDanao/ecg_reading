@@ -66,8 +66,9 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: 500px;
+  max-height: 800px;
+  margin: 20px;
 }
 
 .patient-card {
@@ -107,16 +108,78 @@
 }
 
 .ecg-container {
-  height: 100px;
-  margin: 1rem 0;
-  background-color: #F8F9FA;
-  border-radius: 0.5rem;
-  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s;
 }
 
-.ecg-graph {
-  width: 100%;
-  height: 100%;
+.ecg-container:hover {
+  transform: scale(1.02);
+}
+
+.ecg-modal {
+  max-width: 120vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.ecg-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.ecg-lead {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.ecg-lead h4 {
+  margin: 0 0 0.5rem 0;
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+.ecg-analysis {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.ecg-analysis h3 {
+  margin: 0 0 1rem 0;
+  color: #2d3748;
+}
+
+.probability-breakdown {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.probability-breakdown p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4a5568;
+}
+
+.modal-close {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #4a5568;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modal-close:hover {
+  background: #2d3748;
 }
 
 .patient-vitals {
@@ -184,6 +247,13 @@
   width: 90%;
 }
 
+.modal-content-lead{
+  background-color: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  max-width: 1200px;
+  width: 90%;
+}
 .modal-content h2 {
   color: #111827;
   margin-top: 0;
@@ -200,16 +270,6 @@
   margin-top: 1rem;
 }
 
-.modal-close {
-  background-color: #DC143C;
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-weight: 500;
-}
-
 .loading {
   display: flex;
   justify-content: center;
@@ -219,25 +279,136 @@
   color: var(--text-gray);
 }
 
-.probability-breakdown {
-  margin-top: 1rem;
-  padding: 1rem;
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.new-patient-button {
+  background-color: #4ADE80;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 2rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.new-patient-button:hover {
+  background-color: #22C55E;
+}
+
+.patient-actions-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.card-menu {
+  position: relative;
+}
+
+.menu-button {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  color: #6B7280;
+}
+
+.menu-button:hover {
+  color: #111827;
+}
+
+.card-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
   background-color: white;
   border-radius: 0.5rem;
-  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  min-width: 120px;
+  z-index: 10;
 }
 
-.probability-breakdown p {
-  margin: 0.5rem 0;
-  color: var(--text-dark);
+.card-menu-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #111827;
 }
 
-.probability-breakdown p:first-child {
-  color: var(--success-color);
+.card-menu-dropdown button:hover {
+  background-color: #F8F9FA;
 }
 
-.probability-breakdown p:last-child {
-  color: var(--error-color);
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #DC143C;
+  box-shadow: 0 0 0 2px rgba(220, 20, 60, 0.1);
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.submit-button,
+.cancel-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submit-button {
+  background-color: #4ADE80;
+  color: white;
+}
+
+.submit-button:hover {
+  background-color: #22C55E;
+}
+
+.cancel-button {
+  background-color: #EF4444;
+  color: white;
+}
+
+.cancel-button:hover {
+  background-color: #DC2626;
 }
 
 @media (max-width: 768px) {

@@ -6,7 +6,9 @@ const router = Router();
 // Get all patients
 router.get("/", async (req: Request, res: Response) => {
   try {
+    console.log("Fetching all patients...");
     const patients = await Patient.find().sort({ createdAt: -1 });
+    console.log(`Found ${patients.length} patients:`, patients);
     res.json(patients);
   } catch (error) {
     console.error("Error fetching patients:", error);

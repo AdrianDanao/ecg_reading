@@ -21,21 +21,18 @@ const PredictionList: React.FC = () => {
     const [refreshKey, setRefreshKey] = useState(0);
 
     useEffect(() => {
-        fetch("http://localhost:5000/api/predictions", {
-            method: "GET",
-            credentials: "include"
-        })
+        fetch("http://localhost:5000/api/predictions")
             .then((response) => response.json())
             .then((data) => setPrediction(data))
             .catch((error) => console.error("Error fetching prediction:", error));
     }, [refreshKey]);
 
     useEffect(() => {
-      const interval = setInterval(() => {
-        setRefreshKey((prevKey) => prevKey + 1);
-      }, 10000);
-  
-      return () => clearInterval(interval);
+        const interval = setInterval(() => {
+            setRefreshKey((prevKey) => prevKey + 1);
+        }, 10000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const chartData = prediction?.value.map((val, index) => ({

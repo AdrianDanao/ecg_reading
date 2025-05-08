@@ -6,28 +6,17 @@ const router = Router();
 // Get latest prediction
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const prediction = await Predictions.findOne().sort({ timestamp: -1 });
-    res.json(prediction);
-  } catch (error) {
-    console.error("Error fetching prediction:", error);
-    res.status(500).json({ error: "Failed to fetch prediction" });
-  }
-});
-
-// Get latest prediction for a specific patient
-router.get("/:patientId", async (req: Request<{ patientId: string }>, res: Response) => {
-  try {
-    const prediction = await Predictions.findOne({ device_id: req.params.patientId })
+    const prediction = await Predictions.findOne()
       .sort({ timestamp: -1 });
     
     if (!prediction) {
-      return res.status(404).json({ error: "No predictions found for this patient" });
+      return res.status(404).json({ error: "No predictions found" });
     }
     
     res.json(prediction);
   } catch (error) {
-    console.error("Error fetching patient prediction:", error);
-    res.status(500).json({ error: "Failed to fetch patient prediction" });
+    console.error("Error fetching prediction:", error);
+    res.status(500).json({ error: "Failed to fetch prediction" });
   }
 });
 
