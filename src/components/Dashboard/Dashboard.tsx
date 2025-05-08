@@ -1,7 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import './Dashboard.css';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import "./Dashboard.css";
 
 interface Patient {
   _id: string;
@@ -15,6 +23,7 @@ interface Patient {
   medicalHistory: string[];
   medications: string[];
   createdAt: string;
+  device_id: string;
 }
 
 interface Prediction {
@@ -34,20 +43,23 @@ interface Prediction {
 interface PatientWithPrediction extends Patient {
   prediction?: Prediction;
   bpm?: number;
-  status: 'stable' | 'critical';
+  status: "stable" | "critical";
 }
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = "http://localhost:5000/api";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showPatientModal, setShowPatientModal] = useState(false);
   const [showNewPatientModal, setShowNewPatientModal] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<PatientWithPrediction | null>(null);
+  const [selectedPatient, setSelectedPatient] =
+    useState<PatientWithPrediction | null>(null);
   const [patients, setPatients] = useState<PatientWithPrediction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [availablePredictions, setAvailablePredictions] = useState<Prediction[]>([]);
+  const [availablePredictions, setAvailablePredictions] = useState<
+    Prediction[]
+  >([]);
   const [showCardMenu, setShowCardMenu] = useState<string | null>(null);
   const [showECGModal, setShowECGModal] = useState(false);
   const [selectedECG, setSelectedECG] = useState<Prediction | null>(null);
@@ -56,10 +68,11 @@ const Dashboard: React.FC = () => {
     try {
       // Fetch patients
       const patientsResponse = await fetch(`${API_BASE_URL}/patients`, {
-        method: 'GET',
+        method: "GET",
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json',
-        }
+          "Content-Type": "application/json",
+        },
       });
 
       if (!patientsResponse.ok) {
@@ -68,31 +81,21 @@ const Dashboard: React.FC = () => {
 
       const patientsData: Patient[] = await patientsResponse.json();
 
-      // Fetch latest prediction
-      const predictionResponse = await fetch(`${API_BASE_URL}/predictions`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      let latestPrediction: Prediction | null = null;
-      if (predictionResponse.ok) {
-        latestPrediction = await predictionResponse.json();
-      }
-
       // Calculate BPM from ECG data
       const calculateBPM = (ecgValues: number[]): number => {
         if (!ecgValues || ecgValues.length < 2) return 0;
-        
+
         // Count peaks in the ECG signal
         let peaks = 0;
         for (let i = 1; i < ecgValues.length - 1; i++) {
-          if (ecgValues[i] > ecgValues[i-1] && ecgValues[i] > ecgValues[i+1]) {
+          if (
+            ecgValues[i] > ecgValues[i - 1] &&
+            ecgValues[i] > ecgValues[i + 1]
+          ) {
             peaks++;
           }
         }
-        
+
         // Assuming 1 second of data, calculate BPM
         // Adjust this calculation based on your actual sampling rate
         const samplingRate = 100; // samples per second
@@ -101,24 +104,62 @@ const Dashboard: React.FC = () => {
       };
 
       // Map patients with prediction data
-      const patientsWithPredictions = patientsData.map(patient => {
-        const bpm = latestPrediction ? calculateBPM(latestPrediction.value) : 0;
-        const status: 'stable' | 'critical' = latestPrediction && 
-          (latestPrediction.label === "Heart Attack" || 
-           latestPrediction.confidence_percent > 80) ? 'critical' : 'stable';
+      const patientsWithPredictions: PatientWithPrediction[] =
+        await Promise.all(
+          patientsData.map(async (patient) => {
+            console.log("Patient", patient.device_id);
+            try {
+              const predictionResponse = await fetch(
+                `${API_BASE_URL}/predictions?device_id=${patient.device_id}`,
+                {
+                  method: "GET",
+                  credentials: "include",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
 
-        return {
-          ...patient,
-          prediction: latestPrediction || undefined,
-          bpm,
-          status
-        };
-      });
+              let latestPrediction: Prediction | null = null;
+              if (predictionResponse.ok) {
+                latestPrediction = await predictionResponse.json();
+              }
+
+              const bpm = latestPrediction
+                ? calculateBPM(latestPrediction.value)
+                : 0;
+              const status: "stable" | "critical" =
+                latestPrediction &&
+                (latestPrediction.label === "Heart Attack" ||
+                  latestPrediction.confidence_percent > 80)
+                  ? "critical"
+                  : "stable";
+
+              return {
+                ...patient,
+                prediction: latestPrediction || undefined,
+                bpm,
+                status,
+              };
+            } catch (error) {
+              console.error(
+                `Failed to fetch prediction for ${patient.device_id}:`,
+                error
+              );
+              return {
+                ...patient,
+                prediction: undefined,
+                bpm: 0,
+                status: "stable",
+              };
+            }
+          })
+        );
 
       setPatients(patientsWithPredictions);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching data:", error);
       setLoading(false);
     }
   };
@@ -134,15 +175,15 @@ const Dashboard: React.FC = () => {
     // Fetch available predictions for new patient form
     const fetchPredictions = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/predictions');
+        const response = await fetch("http://localhost:5000/api/predictions");
         if (!response.ok) {
-          throw new Error('Failed to fetch predictions');
+          throw new Error("Failed to fetch predictions");
         }
         const data = await response.json();
         // Convert single prediction to array if needed
         setAvailablePredictions(data ? [data] : []);
       } catch (error) {
-        console.error('Error fetching predictions:', error);
+        console.error("Error fetching predictions:", error);
         setAvailablePredictions([]);
       }
     };
@@ -150,7 +191,7 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const handleLogout = () => {
-    navigate('/');
+    navigate("/");
   };
 
   const handlePatientInfo = (patient: PatientWithPrediction) => {
@@ -158,43 +199,46 @@ const Dashboard: React.FC = () => {
     setShowPatientModal(true);
   };
 
-  const handleSendAmbulance = (patientId: string) => {
+  const handleSendAmbulance = (patient: string) => {
     // Simulate emergency response
-    alert(`Ambulance dispatched for patient ${patientId}`);
+    alert(`Ambulance dispatched for patient ${patient}`);
   };
 
   const handleNewPatient = async (formData: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/patients`, {
-        method: 'POST',
+      const response = await fetch(`${API_BASE_URL}/patients/new_patient`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
       if (response.ok) {
         setShowNewPatientModal(false);
         fetchData(); // Refresh the patient list
       }
     } catch (error) {
-      console.error('Error creating patient:', error);
+      console.error("Error creating patient:", error);
     }
   };
 
   const handleDeletePatient = async (patientId: string) => {
-    if (window.confirm('Are you sure you want to delete this patient?')) {
+    if (window.confirm("Are you sure you want to delete this patient?")) {
       try {
-        const response = await fetch(`${API_BASE_URL}/patients/${patientId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
+        const response = await fetch(
+          `${API_BASE_URL}/patients/delete/${patientId}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
           }
-        });
+        );
         if (response.ok) {
           fetchData(); // Refresh the patient list
         }
       } catch (error) {
-        console.error('Error deleting patient:', error);
+        console.error("Error deleting patient:", error);
       }
     }
   };
@@ -213,14 +257,14 @@ const Dashboard: React.FC = () => {
       <nav className="dashboard-nav">
         <div className="nav-brand">HeartGuard.UI</div>
         <div className="nav-actions">
-          <button 
+          <button
             className="new-patient-button"
             onClick={() => setShowNewPatientModal(true)}
           >
             Add New Patient
           </button>
           <div className="nav-user">
-            <button 
+            <button
               className="user-button"
               onClick={() => setShowDropdown(!showDropdown)}
             >
@@ -248,36 +292,55 @@ const Dashboard: React.FC = () => {
                     {patient.status}
                   </span>
                   <div className="card-menu">
-                    <button 
+                    <button
                       className="menu-button"
-                      onClick={() => setShowCardMenu(showCardMenu === patient._id ? null : patient._id)}
+                      onClick={() =>
+                        setShowCardMenu(
+                          showCardMenu === patient._id ? null : patient._id
+                        )
+                      }
                     >
                       ☰
                     </button>
                     {showCardMenu === patient._id && (
                       <div className="card-menu-dropdown">
-                        <button onClick={() => handlePatientInfo(patient)}>Edit</button>
-                        <button onClick={() => handleDeletePatient(patient._id)}>Delete</button>
+                        <button onClick={() => handlePatientInfo(patient)}>
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeletePatient(patient._id)}
+                        >
+                          Delete
+                        </button>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
-              <div className="ecg-container" onClick={() => patient.prediction && handleECGClick(patient.prediction)}>
+              <div
+                className="ecg-container"
+                onClick={() =>
+                  patient.prediction && handleECGClick(patient.prediction)
+                }
+              >
                 {patient.prediction && (
                   <ResponsiveContainer width="100%" height={100}>
-                    <LineChart data={patient.prediction.value.map((val, index) => ({
-                      index,
-                      voltage: val
-                    }))}>
+                    <LineChart
+                      data={patient.prediction.value.map((val, index) => ({
+                        index,
+                        voltage: val,
+                      }))}
+                    >
                       <CartesianGrid stroke="#ccc" strokeDasharray="3 3" />
                       <XAxis dataKey="index" hide={true} />
                       <YAxis hide={true} />
                       <Tooltip />
-                      <Line 
-                        type="monotone" 
-                        dataKey="voltage" 
-                        stroke={patient.status === 'critical' ? '#EF4444' : '#4ADE80'} 
+                      <Line
+                        type="monotone"
+                        dataKey="voltage"
+                        stroke={
+                          patient.status === "critical" ? "#EF4444" : "#4ADE80"
+                        }
                         dot={false}
                         strokeWidth={1.5}
                       />
@@ -292,13 +355,13 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
               <div className="patient-actions">
-                <button 
+                <button
                   className="action-button emergency"
-                  onClick={() => handleSendAmbulance(patient._id)}
+                  onClick={() => handleSendAmbulance(patient.name)}
                 >
                   Send Ambulance
                 </button>
-                <button 
+                <button
                   className="action-button info"
                   onClick={() => handlePatientInfo(patient)}
                 >
@@ -314,11 +377,13 @@ const Dashboard: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal-content">
             <h2>Add New Patient</h2>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              handleNewPatient(Object.fromEntries(formData));
-            }}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                handleNewPatient(Object.fromEntries(formData));
+              }}
+            >
               <div className="form-group">
                 <label htmlFor="name">Name:</label>
                 <input type="text" id="name" name="name" required />
@@ -354,19 +419,30 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="form-group">
                 <label htmlFor="contactNumber">Contact Number:</label>
-                <input type="tel" id="contactNumber" name="contactNumber" required />
+                <input
+                  type="tel"
+                  id="contactNumber"
+                  name="contactNumber"
+                  required
+                />
               </div>
               <div className="form-group">
                 <label htmlFor="emergencyContact">Emergency Contact:</label>
-                <input type="tel" id="emergencyContact" name="emergencyContact" required />
+                <input
+                  type="tel"
+                  id="emergencyContact"
+                  name="emergencyContact"
+                  required
+                />
               </div>
               <div className="form-group">
-                <label htmlFor="prediction">Select ECG Prediction:</label>
-                <select id="prediction" name="prediction" required>
+                <label htmlFor="device">Select ECG Device:</label>
+                <select id="deviceId" name="deviceId" required>
                   {availablePredictions && availablePredictions.length > 0 ? (
-                    availablePredictions.map(pred => (
-                      <option key={pred._id} value={pred._id}>
-                        {pred.label} ({pred.confidence_percent.toFixed(1)}% confidence)
+                    availablePredictions.map((pred) => (
+                      <option key={pred.device_id} value={pred.device_id}>
+                        {pred.label} ({pred.confidence_percent.toFixed(1)}%
+                        confidence)
                       </option>
                     ))
                   ) : (
@@ -375,9 +451,11 @@ const Dashboard: React.FC = () => {
                 </select>
               </div>
               <div className="form-actions">
-                <button type="submit" className="submit-button">Add Patient</button>
-                <button 
-                  type="button" 
+                <button type="submit" className="submit-button">
+                  Add Patient
+                </button>
+                <button
+                  type="button"
                   className="cancel-button"
                   onClick={() => setShowNewPatientModal(false)}
                 >
@@ -399,19 +477,35 @@ const Dashboard: React.FC = () => {
               <p>Blood Type: {selectedPatient.bloodType}</p>
               <p>Contact: {selectedPatient.contactNumber}</p>
               <p>Emergency Contact: {selectedPatient.emergencyContact}</p>
+              <p>Device ID: {selectedPatient.device_id}</p>
               {selectedPatient.prediction && (
                 <div className="ai-insights">
                   <h3>AI Analysis</h3>
                   <p>Latest Prediction: {selectedPatient.prediction.label}</p>
-                  <p>Confidence: {selectedPatient.prediction.confidence_percent.toFixed(1)}%</p>
+                  <p>
+                    Confidence:{" "}
+                    {selectedPatient.prediction.confidence_percent.toFixed(1)}%
+                  </p>
                   <div className="probability-breakdown">
-                    <p>Normal: {(selectedPatient.prediction.all_class_probabilities.Normal).toFixed(1)}%</p>
-                    <p>Heart Attack: {(selectedPatient.prediction.all_class_probabilities["Heart Attack"]).toFixed(1)}%</p>
+                    <p>
+                      Normal:{" "}
+                      {selectedPatient.prediction.all_class_probabilities.Normal.toFixed(
+                        1
+                      )}
+                      %
+                    </p>
+                    <p>
+                      Heart Attack:{" "}
+                      {selectedPatient.prediction.all_class_probabilities[
+                        "Heart Attack"
+                      ].toFixed(1)}
+                      %
+                    </p>
                   </div>
                 </div>
               )}
             </div>
-            <button 
+            <button
               className="modal-close"
               onClick={() => setShowPatientModal(false)}
             >
@@ -431,18 +525,24 @@ const Dashboard: React.FC = () => {
                 <div key={i} className="ecg-lead">
                   <h4>Lead {i + 1}</h4>
                   <ResponsiveContainer width="100%" height={100}>
-                    <LineChart data={selectedECG.value.map((val, index) => ({
-                      index,
-                      voltage: val
-                    }))}>
+                    <LineChart
+                      data={selectedECG.value.map((val, index) => ({
+                        index,
+                        voltage: val,
+                      }))}
+                    >
                       <CartesianGrid stroke="#ccc" strokeDasharray="3 3" />
                       <XAxis dataKey="index" hide={true} />
                       <YAxis hide={true} />
                       <Tooltip />
-                      <Line 
-                        type="monotone" 
-                        dataKey="voltage" 
-                        stroke={selectedECG.label === "Heart Attack" ? '#EF4444' : '#4ADE80'} 
+                      <Line
+                        type="monotone"
+                        dataKey="voltage"
+                        stroke={
+                          selectedECG.label === "Heart Attack"
+                            ? "#EF4444"
+                            : "#4ADE80"
+                        }
                         dot={false}
                         strokeWidth={1.5}
                       />
@@ -456,11 +556,20 @@ const Dashboard: React.FC = () => {
               <p>Diagnosis: {selectedECG.label}</p>
               <p>Confidence: {selectedECG.confidence_percent.toFixed(1)}%</p>
               <div className="probability-breakdown">
-                <p>Normal: {(selectedECG.all_class_probabilities.Normal).toFixed(1)}%</p>
-                <p>Heart Attack: {(selectedECG.all_class_probabilities["Heart Attack"]).toFixed(1)}%</p>
+                <p>
+                  Normal:{" "}
+                  {selectedECG.all_class_probabilities.Normal.toFixed(1)}%
+                </p>
+                <p>
+                  Heart Attack:{" "}
+                  {selectedECG.all_class_probabilities["Heart Attack"].toFixed(
+                    1
+                  )}
+                  %
+                </p>
               </div>
             </div>
-            <button 
+            <button
               className="modal-close"
               onClick={() => setShowECGModal(false)}
             >
@@ -473,4 +582,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

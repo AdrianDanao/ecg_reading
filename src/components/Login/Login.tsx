@@ -1,16 +1,52 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './Login.css';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import "./Login.css";
+import { useUser } from "../../contexts/UserContext";
 
 const Login: React.FC = () => {
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const { setUser } = useUser();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate authentication
-    if (credentials.username && credentials.password) {
-      navigate('/dashboard');
+    setError("");
+    setLoading(true);
+
+    if (!email || !password) {
+      setError("Please enter both email and password.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      localStorage.setItem("token", data.token); // Save token
+
+      setUser({ name: "John Doe", email: email });
+      navigate("/dashboard");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -27,8 +63,8 @@ const Login: React.FC = () => {
             <input
               type="text"
               id="username"
-              value={credentials.username}
-              onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your username"
               required
             />
@@ -38,14 +74,15 @@ const Login: React.FC = () => {
             <input
               type="password"
               id="password"
-              value={credentials.password}
-              onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
             />
           </div>
-          <button type="submit" className="login-button">
-            Sign In
+          {error && <p className="error-message">{error}</p>}
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
       </div>
@@ -53,4 +90,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login; 
+export default Login;

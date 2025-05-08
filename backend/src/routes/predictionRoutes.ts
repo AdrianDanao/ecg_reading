@@ -4,16 +4,18 @@ import Predictions from "../models/Predictions";
 const router = Router();
 
 // Get latest prediction
-router.get("/", async (req: Request, res: Response) => {
+router.get("/", async (req, res) => {
+  const { device_id } = req.query;
   try {
-    const prediction = await Predictions.findOne()
-      .sort({ timestamp: -1 });
-    
+    const prediction = await Predictions.findOne({ device_id }).sort({
+      timestamp: -1,
+    });
+
     if (!prediction) {
-      return res.status(404).json({ error: "No predictions found" });
+      res.status(404).json({ error: "No predictions found" });
+    } else {
+      res.json(prediction);
     }
-    
-    res.json(prediction);
   } catch (error) {
     console.error("Error fetching prediction:", error);
     res.status(500).json({ error: "Failed to fetch prediction" });

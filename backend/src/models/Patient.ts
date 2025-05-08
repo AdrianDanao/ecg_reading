@@ -10,7 +10,8 @@ const PatientSchema = new mongoose.Schema({
   emergencyContact: { type: String, required: true },
   medicalHistory: { type: [String], default: [] },
   medications: { type: [String], default: [] },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  device_id: { type: String, required: true },
 });
 
-export default mongoose.model("Patient", PatientSchema); 
+export default mongoose.model("Patient", PatientSchema);

@@ -8,7 +8,7 @@ router.get("/", async (req: Request, res: Response) => {
   try {
     console.log("Fetching all patients...");
     const patients = await Patient.find().sort({ createdAt: -1 });
-    console.log(`Found ${patients.length} patients:`, patients);
+
     res.json(patients);
   } catch (error) {
     console.error("Error fetching patients:", error);
@@ -17,11 +17,11 @@ router.get("/", async (req: Request, res: Response) => {
 });
 
 // Get a single patient by ID
-router.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
+router.get("/:id", async (req, res) => {
   try {
     const patient = await Patient.findById(req.params.id);
     if (!patient) {
-      return res.status(404).json({ error: "Patient not found" });
+      res.status(404).json({ error: "Patient not found" });
     }
     res.json(patient);
   } catch (error) {
@@ -31,7 +31,7 @@ router.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
 });
 
 // Create a new patient
-router.post("/", async (req: Request, res: Response) => {
+router.post("/new_patient", async (req: Request, res: Response) => {
   try {
     const newPatient = new Patient(req.body);
     const savedPatient = await newPatient.save();
@@ -43,7 +43,7 @@ router.post("/", async (req: Request, res: Response) => {
 });
 
 // Update a patient
-router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
+router.put("/update/:id", async (req, res) => {
   try {
     const updatedPatient = await Patient.findByIdAndUpdate(
       req.params.id,
@@ -51,7 +51,7 @@ router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
       { new: true }
     );
     if (!updatedPatient) {
-      return res.status(404).json({ error: "Patient not found" });
+      res.status(404).json({ error: "Patient not found" });
     }
     res.json(updatedPatient);
   } catch (error) {
@@ -61,11 +61,12 @@ router.put("/:id", async (req: Request<{ id: string }>, res: Response) => {
 });
 
 // Delete a patient
-router.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
+router.delete("/delete/:id", async (req, res) => {
   try {
+    console.log(req.params.id);
     const deletedPatient = await Patient.findByIdAndDelete(req.params.id);
     if (!deletedPatient) {
-      return res.status(404).json({ error: "Patient not found" });
+      res.status(404).json({ error: "Patient not found" });
     }
     res.json({ message: "Patient deleted successfully" });
   } catch (error) {
@@ -74,4 +75,4 @@ router.delete("/:id", async (req: Request<{ id: string }>, res: Response) => {
   }
 });
 
-export default router; 
+export default router;

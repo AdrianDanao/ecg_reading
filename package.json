@@ -23,7 +23,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "concurrently \"react-scripts start\" \"cd backend && npm run dev\"",
+    "start": "concurrently \"react-scripts start\" \"ts-node backend/src/server.ts\"",
     "dev": "concurrently \"react-scripts start\" \"cd backend && npm run dev\"",
     "build": "react-scripts build",
     "test": "react-scripts test",
